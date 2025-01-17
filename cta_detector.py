@@ -1,4 +1,3 @@
-import argparse
 import cv2
 import sys
 import os
@@ -10,73 +9,6 @@ from sklearn.pipeline import make_pipeline
 from joblib import dump, load
 import matplotlib.pyplot as plt
 from datetime import datetime
-
-
-# Command line argument parser setup
-parser = argparse.ArgumentParser(description='Process an image to detect QR code and analyze color clusters.')
-parser.add_argument('-i', '--image_path', type=str, required=True, help='Path to the input image')
-parser.add_argument('-s', '--csv_path', type=str, required=True, help='Path to the CSV file with existing color clusters')
-parser.add_argument('-v', '--visualize', action='store_true', help='Visualize the results if this flag is set')
-
-args = parser.parse_args()
-
-# Set image paths
-image_path = args.image_path
-csv_path = args.csv_path
-visualize = args.visualize
-timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-
-# Call the QR code detection function
-qr_data, qr_width, qr_height, top_left, bottom_left = detect_qr_code(image_path, visualize, timestamp)
-if qr_data is None or len(qr_data) == 0:
-    print("1/QR data not detected(string length 0)", file=sys.stderr);
-else:
-    if visualize:
-       print(f"QR Code data: {qr_data}")
-       print(f"QR Code width: {qr_width}")
-       print(f"QR Code height: {qr_height}")
-       print(f"QR Code Top-left coordinate: {top_left}")
-       print(f"QR Code Bottom-left coordinate: {bottom_left}")
-
-            # Calculate the cropping coordinates
-    x1, y1 = top_left
-    x2, y2 = bottom_left
-    if y1 < y2 and abs(x1-x2) < abs(y1-y2):	# Case #1: QR Code is at Bottom Right
-        h = abs(y1-y2)
-        x_crop = max(x1 - int(2.0 * h), 0)
-        y_crop = max(y1 - int(0.8 * h), 0)		
-    elif x1 > x2 and abs(x1-x2) > abs(y1-y2): # Case #2: QR Code is at Bottom Left
-        h = abs(x1-x2)
-        x_crop = max(x1 - int(0.8 * h), 0)
-        y_crop = max(y1 - int(2.0 * h), 0)
-    elif y1 > y2 and abs(x1-x2) < abs(y1-y2): # Case #3: QR Code is at Top Left
-        h = abs(y1-y2)
-        x_crop = max(x1 + int(0.2 * h), 0)
-        y_crop = max(y1 - int(0.8 * h), 0)
-    elif x1 < x2 and abs(x1-x2) > abs(y1-y2): # Case #4: QR Code is at Top Right
-        h = abs(x1-x2)
-        x_crop = max(x1 - int(0.8 * h), 0)
-        y_crop = max(y1 + int(0.2 * h), 0)
-
-            # Read the original image
-    image = cv2.imread(image_path)
-    if image is not None:
-            # Crop the image
-        cropped_image = image[y_crop:y_crop + int(1.7*h), x_crop:x_crop + int(1.7*h)]
-
-                # Analyze color clusters
-        detected_temperature = detect_temperature(cropped_image, csv_path, visualize, timestamp)
-
-                # Print the nearest temperature and distances
-                # if visualize:
-                #     print("Distances to each temperature cluster:")
-                #     for temperature, distance in distances:
-                #         print(f"Distance from color cluster of temperature {temperature}: {distance:.2f}")
-                #     print(f"The nearest temperature for the cropped image is: {detected_temperature}")
-                # else:
-        print(f"{qr_data}/{detected_temperature}")
-    else:
-        print("3/Missing Images", file=sys.stderr);
 
 def detect_temperature(test_image, model_path, visualize, timestamp):
     """
@@ -234,3 +166,71 @@ def detect_qr_code(image_path, visualize, timestamp):
         return data, width, height, top_left, bottom_left
     else:
         return None, None, None, None, None
+
+
+
+def run(image_path, csv_path, v):
+    # Command line argument parser setup
+    # Set image paths
+    image_path = image_path
+    csv_path = csv_path
+    visualize = v 
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+
+    # Call the QR code detection function
+    qr_data, qr_width, qr_height, top_left, bottom_left = detect_qr_code(image_path, visualize, timestamp)
+    if qr_data is None or len(qr_data) == 0:
+        #print("1/QR data not detected(string length 0)", file=sys.stderr)
+        return 1, null, null
+    else:
+        if visualize:
+            print(f"QR Code data: {qr_data}")
+            print(f"QR Code width: {qr_width}")
+            print(f"QR Code height: {qr_height}")
+            print(f"QR Code Top-left coordinate: {top_left}")
+            print(f"QR Code Bottom-left coordinate: {bottom_left}")
+
+                # Calculate the cropping coordinates
+        x1, y1 = top_left
+        x2, y2 = bottom_left
+        if y1 < y2 and abs(x1-x2) < abs(y1-y2):	# Case #1: QR Code is at Bottom Right
+            h = abs(y1-y2)
+            x_crop = max(x1 - int(2.0 * h), 0)
+            y_crop = max(y1 - int(0.8 * h), 0)		
+        elif x1 > x2 and abs(x1-x2) > abs(y1-y2): # Case #2: QR Code is at Bottom Left
+            h = abs(x1-x2)
+            x_crop = max(x1 - int(0.8 * h), 0)
+            y_crop = max(y1 - int(2.0 * h), 0)
+        elif y1 > y2 and abs(x1-x2) < abs(y1-y2): # Case #3: QR Code is at Top Left
+            h = abs(y1-y2)
+            x_crop = max(x1 + int(0.2 * h), 0)
+            y_crop = max(y1 - int(0.8 * h), 0)
+        elif x1 < x2 and abs(x1-x2) > abs(y1-y2): # Case #4: QR Code is at Top Right
+            h = abs(x1-x2)
+            x_crop = max(x1 - int(0.8 * h), 0)
+            y_crop = max(y1 + int(0.2 * h), 0)
+
+                # Read the original image
+        image = cv2.imread(image_path)
+        if image is not None:
+                # Crop the image
+            cropped_image = image[y_crop:y_crop + int(1.7*h), x_crop:x_crop + int(1.7*h)]
+
+                    # Analyze color clusters
+            detected_temperature = detect_temperature(cropped_image, csv_path, visualize, timestamp)
+
+                    # Print the nearest temperature and distances
+                    # if visualize:
+                    #     print("Distances to each temperature cluster:")
+                    #     for temperature, distance in distances:
+                    #         print(f"Distance from color cluster of temperature {temperature}: {distance:.2f}")
+                    #     print(f"The nearest temperature for the cropped image is: {detected_temperature}")
+                    # else:
+            #print(f"{qr_data}/{detected_temperature}")
+            return 0, qr_data, detected_temperature
+        else:
+            #print("3/Missing Images", file=sys.stderr)
+            return 2, null, null
+
+
+
